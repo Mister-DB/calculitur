@@ -5,6 +5,7 @@
 <title>Калькулятор</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+ // Попробуй активировать коды, михалыч
 
   body {
     display: flex;
