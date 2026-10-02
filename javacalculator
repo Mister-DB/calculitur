@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Калькулятор</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #1e1e2e;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  .calculator {
+    background: #2a2a3c;
+    padding: 24px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    width: 340px;
+  }
+
+  .display {
+    background: #16161f;
+    color: #fff;
+    font-size: 2.4rem;
+    text-align: right;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    min-height: 90px;
+    overflow-x: auto;
+    white-space: nowrap;
+    word-break: break-all;
+    line-height: 1.2;
+  }
+
+  .display .expression {
+    font-size: 1rem;
+    color: #8888aa;
+    min-height: 1.2em;
+    margin-bottom: 6px;
+    overflow-x: auto;
+  }
+
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  button {
+    padding: 18px 0;
+    font-size: 1.3rem;
+    border: none;
+    border-radius: 10px;
+    background: #3a3a52;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+    user-select: none;
+  }
+
+  button:hover  { background: #4a4a68; }
+  button:active { transform: scale(0.95); }
+
+  button.operator { background: #4a3a6a; }
+  button.operator:hover { background: #5a4a80; }
+
+  button.equals {
+    background: #6c5ce7;
+    grid-column: span 2;
+  }
+  button.equals:hover { background: #7d6cf0; }
+
+  button.clear { background: #b03a4a; }
+  button.clear:hover { background: #c94a5c; }
+</style>
+</head>
+<body>
+
+<div class="calculator">
+  <div class="display">
+    <div class="expression" id="expression"></div>
+    <div id="result">0</div>
+  </div>
+  <div class="buttons">
+    <button class="clear" data-action="clear">C</button>
+    <button data-action="delete">⌫</button>
+    <button data-action="percent">%</button>
+    <button class="operator" data-op="/">÷</button>
+
+    <button data-num="7">7</button>
+    <button data-num="8">8</button>
+    <button data-num="9">9</button>
+    <button class="operator" data-op="*">×</button>
+
+    <button data-num="4">4</button>
+    <button data-num="5">5</button>
+    <button data-num="6">6</button>
+    <button class="operator" data-op="-">−</button>
+
+    <button data-num="1">1</button>
+    <button data-num="2">2</button>
+    <button data-num="3">3</button>
+    <button class="operator" data-op="+">+</button>
+
+    <button data-num="0">0</button>
+    <button data-action="dot">.</button>
+    <button class="equals" data-action="equals">=</button>
+  </div>
+</div>
+
+<script>
+class Calculator {
+  constructor(displayEl, expressionEl) {
+    this.displayEl = displayEl;
+    this.expressionEl = expressionEl;
+    this.reset();
+  }
+
+  reset() {
+    this.current = "0";
+    this.previous = null;
+    this.operator = null;
+    this.waitingForOperand = false;
+    this.render();
+  }
+
+  inputDigit(digit) {
+    if (this.waitingForOperand) {
+      this.current = digit;
+      this.waitingForOperand = false;
+    } else {
+      this.current = this.current === "0" ? digit : this.current + digit;
+    }
+    this.render();
+  }
+
+  inputDot() {
+    if (this.waitingForOperand) {
+      this.current = "0.";
+      this.waitingForOperand = false;
+    } else if (!this.current.includes(".")) {
+      this.current += ".";
+    }
+    this.render();
+  }
+
+  chooseOperator(op) {
+    if (this.operator && !this.waitingForOperand) {
+      this.compute();
+    }
+    this.previous = parseFloat(this.current);
+    this.operator = op;
+    this.waitingForOperand = true;
+    this.render();
+  }
+
+  compute() {
+    if (this.operator === null || this.previous === null) return;
+
+    const a = this.previous;
+    const b = parseFloat(this.current);
+    let result;
+
+    switch (this.operator) {
+      case "+": result = a + b; break;
+      case "-": result = a - b; break;
+      case "*": result = a * b; break;
+      case "/":
+        if (b === 0) {
+          this.current = "Ошибка";
+          this.previous = null;
+          this.operator = null;
+          this.waitingForOperand = true;
+          this.render();
+          return;
+        }
+        result = a / b;
+        break;
+      default: return;
+    }
+
+    this.current = String(parseFloat(result.toPrecision(12)));
+    this.previous = null;
+    this.operator = null;
+    this.waitingForOperand = true;
+    this.render();
+  }
+
+  percent() {
+    this.current = String(parseFloat(this.current) / 100);
+    this.render();
+  }
+
+  delete() {
+    if (this.waitingForOperand) return;
+    this.current = this.current.length > 1
+      ? this.current.slice(0, -1)
+      : "0";
+    this.render();
+  }
+
+  render() {
+    this.displayEl.textContent = this.current;
+
+    if (this.operator && this.previous !== null) {
+      const symbols = { "+": "+", "-": "−", "*": "×", "/": "÷" };
+      this.expressionEl.textContent = `${this.previous} ${symbols[this.operator]}`;
+    } else {
+      this.expressionEl.textContent = "";
+    }
+  }
+}
+
+const calc = new Calculator(
+  document.getElementById("result"),
+  document.getElementById("expression")
+);
+
+document.querySelector(".buttons").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+
+  if (btn.dataset.num !== undefined)  calc.inputDigit(btn.dataset.num);
+  else if (btn.dataset.op)            calc.chooseOperator(btn.dataset.op);
+  else if (btn.dataset.action === "dot")     calc.inputDot();
+  else if (btn.dataset.action === "equals")  calc.compute();
+  else if (btn.dataset.action === "clear")   calc.reset();
+  else if (btn.dataset.action === "delete")  calc.delete();
+  else if (btn.dataset.action === "percent") calc.percent();
+});
+
+document.addEventListener("keydown", (e) => {
+  const k = e.key;
+
+  if (/^[0-9]$/.test(k))            calc.inputDigit(k);
+  else if (k === "." || k === ",")  calc.inputDot();
+  else if ("+-*/".includes(k))      calc.chooseOperator(k);
+  else if (k === "Enter" || k === "=") { e.preventDefault(); calc.compute(); }
+  else if (k === "Backspace")       calc.delete();
+  else if (k === "Escape")          calc.reset();
+  else if (k === "%")               calc.percent();
+});
+</script>
+
+</body>
+</html>
